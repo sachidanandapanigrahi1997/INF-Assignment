@@ -1,0 +1,585 @@
+SQL> create table dept
+  2  (id number(7) constraint e_ID_PK PRIMARY KEY,
+  3  name VARCHAR2(25));
+
+Table created.
+
+SQL> desc dept;
+ Name                                      Null?    Type
+ ----------------------------------------- -------- ----------------------------
+ ID                                        NOT NULL NUMBER(7)
+ NAME                                               VARCHAR2(25)
+
+SQL> insert into dept(id,name)
+  2  select department_id,department_name from departments;
+
+27 rows created.
+
+SQL> select * from dept;
+
+        ID NAME                                                                 
+---------- -------------------------                                            
+        10 Administration                                                       
+        20 Marketing                                                            
+        30 Purchasing                                                           
+        40 Human Resources                                                      
+        50 Shipping                                                             
+        60 IT                                                                   
+        70 Public Relations                                                     
+        80 Sales                                                                
+        90 Executive                                                            
+       100 Finance                                                              
+       110 Accounting                                                           
+
+        ID NAME                                                                 
+---------- -------------------------                                            
+       120 Treasury                                                             
+       130 Corporate Tax                                                        
+       140 Control And Credit                                                   
+       150 Shareholder Services                                                 
+       160 Benefits                                                             
+       170 Manufacturing                                                        
+       180 Construction                                                         
+       190 Contracting                                                          
+       200 Operations                                                           
+       210 IT Support                                                           
+       220 NOC                                                                  
+
+        ID NAME                                                                 
+---------- -------------------------                                            
+       230 IT Helpdesk                                                          
+       240 Government Sales                                                     
+       250 Retail Sales                                                         
+       260 Recruiting                                                           
+       270 Payroll                                                              
+
+27 rows selected.
+
+SQL> create table emp
+  2  (id number(7) constraint emp_ID_PK PRIMARY KEY,
+  3  last_name VARCHAR2(25),first_name VARCHAR2(25),
+  4  CONSTRAINT emp_dept_fk FOREIGN KEY (dept_id)
+  5  REFERENCES departments(department_id));
+CONSTRAINT emp_dept_fk FOREIGN KEY (dept_id)
+                                    *
+ERROR at line 4:
+ORA-00904: "DEPT_ID": invalid identifier 
+
+
+SQL> ed
+Wrote file afiedt.buf
+
+  1  create table emp
+  2  (id number(7) constraint emp_ID_PK PRIMARY KEY,
+  3  last_name VARCHAR2(25),first_name VARCHAR2(25),
+  4  dept_id number(7),
+  5  CONSTRAINT emp_dept_fk FOREIGN KEY (dept_id)
+  6* REFERENCES departments(department_id))
+SQL> /
+CONSTRAINT emp_dept_fk FOREIGN KEY (dept_id)
+           *
+ERROR at line 5:
+ORA-02264: name already used by an existing constraint 
+
+
+SQL> create table emp
+  2  (id number(7) constraint emp_ID_PK PRIMARY KEY,
+  3  last_name VARCHAR2(25),first_name VARCHAR2(25),
+  4  dept_id number(7)
+  5  CONSTRAINT empl_dept_fk FOREIGN KEY (dept_id)
+  6  REFERENCES departments(department_id));
+CONSTRAINT empl_dept_fk FOREIGN KEY (dept_id)
+*
+ERROR at line 5:
+ORA-02253: constraint specification not allowed here 
+
+
+SQL> create table emp
+  2  (id number(7) constraint emp_ID_PK PRIMARY KEY,
+  3  last_name VARCHAR2(25),first_name VARCHAR2(25),
+  4  dept_id number(7),
+  5  CONSTRAINT empl_dept_fk FOREIGN KEY (dept_id)
+  6  REFERENCES departments(department_id));
+
+Table created.
+
+SQL> desc emp
+ Name                                      Null?    Type
+ ----------------------------------------- -------- ----------------------------
+ ID                                        NOT NULL NUMBER(7)
+ LAST_NAME                                          VARCHAR2(25)
+ FIRST_NAME                                         VARCHAR2(25)
+ DEPT_ID                                            NUMBER(7)
+
+SQL> create table employees2(id,first_name,last_name, salary, department_id)
+  2  as (select (employee_id, first_name,last_name, salary, department_id) from employees);
+as (select (employee_id, first_name,last_name, salary, department_id) from employees)
+                       *
+ERROR at line 2:
+ORA-00907: missing right parenthesis 
+
+
+SQL> ed
+Wrote file afiedt.buf
+
+  1  create table employees2(id,first_name,last_name, salary, department_id)
+  2* as (select employee_id, first_name,last_name, salary, department_id from employees)
+SQL> /
+
+Table created.
+
+SQL> desc employees2
+ Name                                      Null?    Type
+ ----------------------------------------- -------- ----------------------------
+ ID                                                 NUMBER(6)
+ FIRST_NAME                                         VARCHAR2(20)
+ LAST_NAME                                 NOT NULL VARCHAR2(25)
+ SALARY                                             NUMBER(8,2)
+ DEPARTMENT_ID                                      NUMBER(4)
+
+SQL> ALTER TABLE EMPLOYEES2 READ ONLY;
+
+Table altered.
+
+SQL> DESC EMPLOYEES2;
+ Name                                      Null?    Type
+ ----------------------------------------- -------- ----------------------------
+ ID                                                 NUMBER(6)
+ FIRST_NAME                                         VARCHAR2(20)
+ LAST_NAME                                 NOT NULL VARCHAR2(25)
+ SALARY                                             NUMBER(8,2)
+ DEPARTMENT_ID                                      NUMBER(4)
+
+SQL> VARIABLE rows_del VARCHAR2(30)
+SQL> DECLARE
+  2    v_empl_id employees.employee_id%TYPE := 176;
+  3  BEGIN
+  4    DELETE FROM  employees
+  5    WHERE        employee_id = v_empl_id;
+  6    :rows_del := (SQL%ROWCOUNT ||' row(s) deleted.');
+  7  END;
+  8  /
+DECLARE
+*
+ERROR at line 1:
+ORA-02292: integrity constraint (HR.JHIST_EMP_FK) violated - child record found 
+ORA-06512: at line 4 
+
+
+SQL> PRINT rows_del
+
+ROWS_DEL                                                                        
+--------------------------------                                                
+                                                                                
+
+SQL> ed
+Wrote file afiedt.buf
+
+  1  DECLARE
+  2    v_empl_id employees.employee_id%TYPE := 176;
+  3  BEGIN
+  4    DELETE FROM  employees
+  5    WHERE employee_id = v_empl_id;
+  6    :rows_del := (SQL%ROWCOUNT ||' row(s) deleted.');
+  7* END;
+SQL> print rows_Del
+
+ROWS_DEL                                                                        
+--------------------------------                                                
+                                                                                
+
+SQL> DECLARE
+  2    CURSOR emp_cursor IS
+  3      SELECT last_name, department_id
+  4      FROM   employees;
+  5  BEGIN
+  6    FOR emp_record IN emp_cursor LOOP
+  7           -- implicit open and implicit fetch occur
+  8      IF emp_record.department_id = 80 THEN
+  9        update emp_record.department_id =70;
+ 10  END IF;
+ 11    END LOOP; -- implicit close occurs
+ 12  END;
+ 13  
+ 14  
+ 15  /
+      update emp_record.department_id =70;
+                                      *
+ERROR at line 9:
+ORA-06550: line 9, column 39: 
+PL/SQL: ORA-00971: missing SET keyword 
+ORA-06550: line 9, column 7: 
+PL/SQL: SQL Statement ignored 
+
+
+SQL> ed
+Wrote file afiedt.buf
+
+  1  DECLARE
+  2    CURSOR emp_cursor IS
+  3      SELECT last_name, department_id
+  4      FROM   employees;
+  5  BEGIN
+  6    FOR emp_record IN emp_cursor LOOP
+  7           -- implicit open and implicit fetch occur
+  8      IF emp_record.department_id = 80 THEN
+  9        update emp_record.department_id  set 70;
+ 10  END IF;
+ 11    END LOOP; -- implicit close occurs
+ 12* END;
+ 13  /
+      update emp_record.department_id  set 70;
+                                           *
+ERROR at line 9:
+ORA-06550: line 9, column 44: 
+PL/SQL: ORA-01747: invalid user.table.column, table.column, or column 
+specification 
+ORA-06550: line 9, column 7: 
+PL/SQL: SQL Statement ignored 
+
+
+SQL> ed
+Wrote file afiedt.buf
+
+  1  DECLARE
+  2    CURSOR emp_cursor IS
+  3      SELECT last_name, department_id
+  4      FROM   employees;
+  5  BEGIN
+  6    FOR emp_record IN emp_cursor LOOP
+  7           -- implicit open and implicit fetch occur
+  8      IF emp_record.department_id = 80 THEN
+  9        update emp_record set department_id70;
+ 10  END IF;
+ 11    END LOOP; -- implicit close occurs
+ 12* END;
+SQL> /
+      update emp_record set department_id70;
+                                           *
+ERROR at line 9:
+ORA-06550: line 9, column 44: 
+PL/SQL: ORA-00927: missing equal sign 
+ORA-06550: line 9, column 7: 
+PL/SQL: SQL Statement ignored 
+
+
+SQL> ed
+Wrote file afiedt.buf
+
+  1  DECLARE
+  2    CURSOR emp_cursor IS
+  3      SELECT last_name, department_id
+  4      FROM   employees;
+  5  BEGIN
+  6    FOR emp_record IN emp_cursor LOOP
+  7           -- implicit open and implicit fetch occur
+  8      IF emp_record.department_id = 80 THEN
+  9        update emp_record set department_id =70;
+ 10  END IF;
+ 11    END LOOP; -- implicit close occurs
+ 12* END;
+SQL> /
+      update emp_record set department_id =70;
+             *
+ERROR at line 9:
+ORA-06550: line 9, column 14: 
+PL/SQL: ORA-00942: table or view does not exist 
+ORA-06550: line 9, column 7: 
+PL/SQL: SQL Statement ignored 
+
+
+SQL> ed
+Wrote file afiedt.buf
+
+  1  DECLARE
+  2    CURSOR emp_cursor IS
+  3      SELECT last_name, department_id
+  4      FROM   employees;
+  5  BEGIN
+  6    FOR emp_record IN emp_cursor LOOP
+  7          IF emp_record.department_id = 80 THEN
+  8               update employees 
+  9  	     set department_id =70;
+ 10  	END IF;
+ 11    END LOOP; 
+ 12* END;
+SQL> /
+DECLARE
+*
+ERROR at line 1:
+ORA-00001: unique constraint (HR.JHIST_EMP_ID_ST_DATE_PK) violated 
+ORA-06512: at "HR.ADD_JOB_HISTORY", line 10 
+ORA-06512: at "HR.UPDATE_JOB_HISTORY", line 2 
+ORA-04088: error during execution of trigger 'HR.UPDATE_JOB_HISTORY' 
+ORA-06512: at line 8 
+
+
+SQL> ed
+Wrote file afiedt.buf
+
+  1  DECLARE
+  2    CURSOR emp_cursor IS
+  3      SELECT last_name, department_id
+  4      FROM   employees;
+  5  BEGIN
+  6    FOR emp_record IN emp_cursor LOOP
+  7          IF emp_record.department_id = 80 THEN
+  8               update emp_record 
+  9  	     set department_id =70;
+ 10  	END IF;
+ 11    END LOOP; 
+ 12* END;
+SQL> /
+             update emp_record 
+                    *
+ERROR at line 8:
+ORA-06550: line 8, column 21: 
+PL/SQL: ORA-00942: table or view does not exist 
+ORA-06550: line 8, column 14: 
+PL/SQL: SQL Statement ignored 
+
+
+SQL> SET SERVEROUTPUT ON
+SQL>     DECLARE
+  2        CURSOR emp_cursor IS
+  3          SELECT last_name, department_id
+  4          FROM   employees;
+  5      BEGIN
+  6        FOR emp_record IN emp_cursor LOOP
+  7               --implicit open and implicit fetch occur
+  8          IF emp_record.department_id = 80 THEN
+  9             DBMS_OUTPUT.PUT_LINE ('Employee ' || emp_record.last_name
+ 10                                  || ' works in the Sales Dept. ');
+ 11          END IF;
+ 12        END LOOP;   --implicit close and implicit loop exit
+ 13      END ;
+ 14      /
+Employee Russell works in the Sales Dept.                                       
+Employee Partners works in the Sales Dept.                                      
+Employee Errazuriz works in the Sales Dept.                                     
+Employee Cambrault works in the Sales Dept.                                     
+Employee Zlotkey works in the Sales Dept.                                       
+Employee Tucker works in the Sales Dept.                                        
+Employee Bernstein works in the Sales Dept.                                     
+Employee Hall works in the Sales Dept.                                          
+Employee Olsen works in the Sales Dept.                                         
+Employee Cambrault works in the Sales Dept.                                     
+Employee Tuvault works in the Sales Dept.                                       
+Employee King works in the Sales Dept.                                          
+Employee Sully works in the Sales Dept.                                         
+Employee McEwen works in the Sales Dept.                                        
+Employee Smith works in the Sales Dept.                                         
+Employee Doran works in the Sales Dept.                                         
+Employee Sewall works in the Sales Dept.                                        
+Employee Vishney works in the Sales Dept.                                       
+Employee Greene works in the Sales Dept.                                        
+Employee Marvins works in the Sales Dept.                                       
+Employee Lee works in the Sales Dept.                                           
+Employee Ande works in the Sales Dept.                                          
+Employee Banda works in the Sales Dept.                                         
+Employee Ozer works in the Sales Dept.                                          
+Employee Bloom works in the Sales Dept.                                         
+Employee Fox works in the Sales Dept.                                           
+Employee Smith works in the Sales Dept.                                         
+Employee Bates works in the Sales Dept.                                         
+Employee Kumar works in the Sales Dept.                                         
+Employee Abel works in the Sales Dept.                                          
+Employee Hutton works in the Sales Dept.                                        
+Employee Taylor works in the Sales Dept.                                        
+Employee Livingston works in the Sales Dept.                                    
+Employee Johnson works in the Sales Dept.                                       
+
+PL/SQL procedure successfully completed.
+
+SQL> create table count
+  2  (id number(7));
+
+Table created.
+
+SQL> desc count
+ Name                                      Null?    Type
+ ----------------------------------------- -------- ----------------------------
+ ID                                                 NUMBER(7)
+
+SQL> view tables
+SP2-0734: unknown command beginning "view table..." - rest of line ignored.
+SQL> select * from tab;
+
+TNAME                          TABTYPE  CLUSTERID                               
+------------------------------ ------- ----------                               
+BIN$OTjpOVgzSNS+2sKfBSPngA==$0 TABLE                                            
+BIN$WQjKmQivSC6eMEAxqp2W0Q==$0 TABLE                                            
+BIN$p2xyEFfXRc2qADAb9d87dg==$0 TABLE                                            
+COUNT                          TABLE                                            
+COUNTRIES                      TABLE                                            
+DEPARTMENTS                    TABLE                                            
+DEPT                           TABLE                                            
+EMP                            TABLE                                            
+EMPLOYEES                      TABLE                                            
+EMPLOYEES2                     TABLE                                            
+EMP_DETAILS_VIEW               VIEW                                             
+
+TNAME                          TABTYPE  CLUSTERID                               
+------------------------------ ------- ----------                               
+JOBS                           TABLE                                            
+JOB_HISTORY                    TABLE                                            
+LOCATIONS                      TABLE                                            
+REGIONS                        TABLE                                            
+
+15 rows selected.
+
+SQL> select * from count
+  2  /
+
+no rows selected
+
+SQL> desc count
+ Name                                      Null?    Type
+ ----------------------------------------- -------- ----------------------------
+ ID                                                 NUMBER(7)
+
+SQL> select tablespace_name, table_name from all_tables;
+
+TABLESPACE_NAME                TABLE_NAME                                       
+------------------------------ ------------------------------                   
+SYSTEM                         DUAL                                             
+SYSTEM                         SYSTEM_PRIVILEGE_MAP                             
+SYSTEM                         TABLE_PRIVILEGE_MAP                              
+SYSTEM                         STMT_AUDIT_OPTION_MAP                            
+SYSTEM                         AUDIT_ACTIONS                                    
+SYSAUX                         WRR$_REPLAY_CALL_FILTER                          
+SYSTEM                         HS_BULKLOAD_VIEW_OBJ                             
+SYSTEM                         HS$_PARALLEL_METADATA                            
+SYSTEM                         HS_PARTITION_COL_NAME                            
+SYSTEM                         HS_PARTITION_COL_TYPE                            
+SYSTEM                         HELP                                             
+
+TABLESPACE_NAME                TABLE_NAME                                       
+------------------------------ ------------------------------                   
+SYSAUX                         DR$OBJECT_ATTRIBUTE                              
+SYSAUX                         DR$POLICY_TAB                                    
+SYSAUX                         DR$THS                                           
+SYSAUX                         DR$THS_PHRASE                                    
+SYSAUX                         DR$NUMBER_SEQUENCE                               
+SYSAUX                         XDB$XIDX_IMP_T                                   
+SYSAUX                         SRSNAMESPACE_TABLE                               
+SYSAUX                         SDO_UNITS_OF_MEASURE                             
+SYSAUX                         SDO_PRIME_MERIDIANS                              
+SYSAUX                         SDO_ELLIPSOIDS                                   
+SYSAUX                         SDO_DATUMS                                       
+
+TABLESPACE_NAME                TABLE_NAME                                       
+------------------------------ ------------------------------                   
+SYSAUX                         SDO_COORD_SYS                                    
+SYSAUX                         SDO_COORD_AXIS_NAMES                             
+SYSAUX                         SDO_COORD_AXES                                   
+SYSAUX                         SDO_COORD_REF_SYS                                
+SYSAUX                         SDO_COORD_OP_METHODS                             
+SYSAUX                         SDO_COORD_OPS                                    
+SYSAUX                         SDO_PREFERRED_OPS_SYSTEM                         
+SYSAUX                         SDO_PREFERRED_OPS_USER                           
+SYSAUX                         SDO_COORD_OP_PATHS                               
+SYSAUX                         SDO_COORD_OP_PARAMS                              
+SYSAUX                         SDO_COORD_OP_PARAM_USE                           
+
+TABLESPACE_NAME                TABLE_NAME                                       
+------------------------------ ------------------------------                   
+SYSAUX                         SDO_COORD_OP_PARAM_VALS                          
+SYSAUX                         SDO_CRS_GEOGRAPHIC_PLUS_HEIGHT                   
+SYSAUX                         SDO_XML_SCHEMAS                                  
+SYSAUX                         AW$AWCREATE10G                                   
+SYSAUX                         AW$AWXML                                         
+SYSAUX                         AW$AWREPORT                                      
+SYSTEM                         MVIEW$_ADV_INDEX                                 
+SYSTEM                         MVIEW$_ADV_PARTITION                             
+SYSAUX                         AW$EXPRESS                                       
+SYSAUX                         AW$AWMD                                          
+SYSAUX                         AW$AWCREATE                                      
+
+TABLESPACE_NAME                TABLE_NAME                                       
+------------------------------ ------------------------------                   
+SYSAUX                         SDO_CS_SRS                                       
+SYSAUX                         NTV2_XML_DATA                                    
+SYSAUX                         SDO_PROJECTIONS_OLD_SNAPSHOT                     
+SYSAUX                         SDO_ELLIPSOIDS_OLD_SNAPSHOT                      
+SYSAUX                         SDO_DATUMS_OLD_SNAPSHOT                          
+SYSAUX                         OGIS_SPATIAL_REFERENCE_SYSTEMS                   
+SYSAUX                         OGIS_GEOMETRY_COLUMNS                            
+SYSAUX                         SDO_WS_CONFERENCE                                
+SYSAUX                         SDO_WS_CONFERENCE_RESULTS                        
+SYSAUX                         SDO_WS_CONFERENCE_PARTICIPANTS                   
+SYSAUX                         SDO_TIN_PC_SEQ                                   
+
+TABLESPACE_NAME                TABLE_NAME                                       
+------------------------------ ------------------------------                   
+SYSAUX                         SDO_TIN_PC_SYSDATA_TABLE                         
+SYSAUX                         WWV_FLOW_DUAL100                                 
+EXAMPLE                        REGIONS                                          
+EXAMPLE                        LOCATIONS                                        
+EXAMPLE                        DEPARTMENTS                                      
+SYSAUX                         SDO_GEOR_XMLSCHEMA_TABLE                         
+SYSAUX                         SDO_GEOR_PLUGIN_REGISTRY                         
+USERS                          DEPT                                             
+USERS                          EMP                                              
+USERS                          EMPLOYEES2                                       
+USERS                          COUNT                                            
+
+TABLESPACE_NAME                TABLE_NAME                                       
+------------------------------ ------------------------------                   
+                               COUNTRIES                                        
+                               WWV_FLOW_TEMP_TABLE                              
+                               WWV_FLOW_LOV_TEMP                                
+                               SDO_WFS_LOCAL_TXNS                               
+                               SDO_GR_RDT_1                                     
+                               SDO_GR_MOSAIC_3                                  
+                               SDO_GR_MOSAIC_2                                  
+                               SDO_GR_MOSAIC_1                                  
+                               SDO_GR_MOSAIC_0                                  
+                               SDO_TOPO_DATA$                                   
+                               SDO_TOPO_RELATION_DATA                           
+
+TABLESPACE_NAME                TABLE_NAME                                       
+------------------------------ ------------------------------                   
+                               SDO_TOPO_TRANSACT_DATA                           
+                               SDO_CS_CONTEXT_INFORMATION                       
+                               SDO_TXN_IDX_EXP_UPD_RGN                          
+                               SDO_TXN_IDX_DELETES                              
+                               SDO_TXN_IDX_INSERTS                              
+                               SDO_ST_TOLERANCE                                 
+                               OLAP_SESSION_CUBES                               
+                               OLAP_SESSION_DIMS                                
+                               SAM_SPARSITY_ADVICE                              
+                               MVIEW$_ADV_OWB                                   
+                               OLAPTABLEVELTUPLES                               
+
+TABLESPACE_NAME                TABLE_NAME                                       
+------------------------------ ------------------------------                   
+                               OLAPTABLEVELS                                    
+                               RLM$PARSEDCOND                                   
+                               KU$_DATAPUMP_MASTER_10_1                         
+                               KU$_DATAPUMP_MASTER_11_1                         
+                               KU$_DATAPUMP_MASTER_11_1_0_7                     
+                               KU$_DATAPUMP_MASTER_11_2                         
+                               IMPDP_STATS                                      
+                               ODCI_PMO_ROWIDS$                                 
+                               ODCI_WARNINGS$                                   
+                               ODCI_SECOBJ$                                     
+                               KU$_LIST_FILTER_TEMP_2                           
+
+TABLESPACE_NAME                TABLE_NAME                                       
+------------------------------ ------------------------------                   
+                               KU$_LIST_FILTER_TEMP                             
+                               KU$NOEXP_TAB                                     
+                               OL$NODES                                         
+                               OL$HINTS                                         
+                               OL$                                              
+                               PLAN_TABLE$                                      
+                               WRI$_ADV_ASA_RECO_DATA                           
+                               PSTUBTBL                                         
+EXAMPLE                        JOBS                                             
+EXAMPLE                        EMPLOYEES                                        
+EXAMPLE                        JOB_HISTORY                                      
+
+110 rows selected.
+
+SQL> spool off
